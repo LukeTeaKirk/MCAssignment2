@@ -1,5 +1,4 @@
 package com.example.mcassignment2
-
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
@@ -55,6 +54,8 @@ data class WeatherData(
 interface WeatherDao {
     @Insert
     suspend fun insertWeatherData(weatherData: WeatherData)
+    @Query("SELECT * FROM WeatherData WHERE strftime('%m-%d', date) = strftime('%m-%d', :date) AND latitude = :latitude AND longitude = :longitude ORDER BY date DESC LIMIT 10")
+    suspend fun getLastTenYearsData(date: String, latitude: Double, longitude: Double): List<WeatherData>
 
     @Query("SELECT * FROM WeatherData WHERE date = :date AND latitude = :latitude AND longitude = :longitude LIMIT 1")
     suspend fun queryWeatherData(date: String, latitude: Double, longitude: Double): WeatherData?
@@ -190,31 +191,51 @@ fun WeatherApp(context: Context, locationState: State<Location?>) {
             Text("Save Weather Data")
         }
         Button(onClick = {
-            coroutineScope.launch(Dispatchers.IO) {
-                location?.let { loc ->
-                    try {
-                        val db = Room.databaseBuilder(
-                            context.applicationContext,
-                            AppDatabase::class.java, "weather-database"
-                        ).build()
-
-                        val queriedData = db.weatherDao().queryWeatherData(dateInput, loc.latitude, loc.longitude)
-                        if (queriedData != null) {
-                            maxTemp = queriedData.maxTemp
-                            minTemp = queriedData.minTemp
-                        } else {
-                            errorMessage = "No data found for this date and location"
+            val enteredDate = LocalDate.parse(dateInput)
+            val currentDate = LocalDate.now()
+            if (enteredDate.isAfter(currentDate)) {
+                coroutineScope.launch(Dispatchers.IO) {
+                    location?.let { loc ->
+                        try {
+                            val db = Room.databaseBuilder(context.applicationContext, AppDatabase::class.java, "weather-database").build()
+                            val weatherDataPoints = db.weatherDao().getLastTenYearsData(dateInput, loc.latitude, loc.longitude)
+                            if (weatherDataPoints.size == 10) {
+                                val averageMaxTemp = weatherDataPoints.map { it.maxTemp.toDouble() }.average()
+                                val averageMinTemp = weatherDataPoints.map { it.minTemp.toDouble() }.average()
+                                maxTemp = String.format("%.2f", averageMaxTemp)
+                                minTemp = String.format("%.2f", averageMinTemp)
+                            } else {
+                                errorMessage = "No historical data found"
+                            }
+                        } catch (e: Exception) {
+                            errorMessage = "Error querying historical data"
+                            Log.e("WeatherApp", "Error querying historical data", e)
                         }
-                    } catch (e: Exception) {
-                        errorMessage = "Error querying the database"
-                        Log.e("WeatherApp", "Error querying the database", e)
+                    }
+                }
+            } else {
+                coroutineScope.launch(Dispatchers.IO) {
+                    location?.let { loc ->
+                        try {
+                            val db = Room.databaseBuilder(context.applicationContext, AppDatabase::class.java, "weather-database").build()
+                            val queriedData = db.weatherDao()
+                                .queryWeatherData(dateInput, loc.latitude, loc.longitude)
+                            if (queriedData != null) {
+                                maxTemp = queriedData.maxTemp
+                                minTemp = queriedData.minTemp
+                            } else {
+                                errorMessage = "No data found for this date and location"
+                            }
+                        } catch (e: Exception) {
+                            errorMessage = "Error querying the database"
+                            Log.e("WeatherApp", "Error querying the database", e)
+                        }
                     }
                 }
             }
         }) {
             Text("Query Weather Data")
         }
-
         if (errorMessage.isNotEmpty()) {
             Text(errorMessage, color = MaterialTheme.colorScheme.error)
         }
