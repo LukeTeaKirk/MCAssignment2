@@ -13,3 +13,5 @@ The same above foundation, except the following added functionaility:
   2. After succesfully requesting the Max, Min Temperature for a given day, there is a button to commit this data into the database. If the data is null, the app does not crash.
   3. The local database can be queried by inputing the date, and pressing a button. If no record is found an error message is displayed. If the date is in the future, it calculates the average of the previous 10 datapoints on the same date (diff year).
      If there are not 10 data points, an error message is displayed.
+
+Where appropriate, coroutines are used to ensure that he main ui thread isnt bogged down.
