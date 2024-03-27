@@ -247,7 +247,6 @@ fun WeatherApp(context: Context, locationState: State<Location?>) {
 suspend fun fetchWeather(date: String, lat: Double, lon: Double): Pair<String, String> = kotlinx.coroutines.withContext(Dispatchers.IO) {
     val (year, month, day) = date.split("-").map { it.toInt() }
     val url = URL("https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/$lat,$lon/$year-$month-$day/$year-$month-$day?unitGroup=metric&include=days&key=VNJRVLJTXVJDMZ8FZKRVN7N4T&contentType=json")
-    Log.d("weather", "fetchWeather: $url")
     val connection = url.openConnection() as HttpURLConnection
     connection.requestMethod = "GET"
     val response = connection.inputStream.bufferedReader().use { it.readText() }
