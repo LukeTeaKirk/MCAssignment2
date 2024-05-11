@@ -1,5 +1,6 @@
 package com.example.mcassignment2
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Bundle
@@ -29,6 +30,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.google.android.gms.location.*
 import kotlinx.coroutines.withContext
@@ -92,7 +94,7 @@ class MainActivity : ComponentActivity() {
             weatherData.value?.let {
                 Surface(
                     modifier = Modifier.fillMaxWidth().padding(8.dp),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(8.dp),color = Color.LightGray
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -108,6 +110,19 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+            Button(onClick = { navigateToComparison(location) }) {
+                Text("Compare Weather")
+            }
+
+        }
+    }
+    private fun navigateToComparison(location: Location?) {
+        location?.let {
+            val intent = Intent(this, ComparisonAct::class.java).apply {
+                putExtra("latitude", it.latitude)
+                putExtra("longitude", it.longitude)
+            }
+            startActivity(intent)
         }
     }
 
