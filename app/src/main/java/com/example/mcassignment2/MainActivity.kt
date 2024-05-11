@@ -1,41 +1,45 @@
 package com.example.mcassignment2
 import android.annotation.SuppressLint
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Bundle
-import android.os.Looper
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationCallback
-import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 import java.time.LocalDate
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
-import com.google.android.gms.location.*
-import kotlinx.coroutines.withContext
 import java.time.format.DateTimeFormatter
-import kotlin.math.log
 
 @SuppressLint("MissingPermission")
 class MainActivity : ComponentActivity() {
@@ -71,14 +75,21 @@ class MainActivity : ComponentActivity() {
         val weatherData = remember { mutableStateOf<Pair<List<String>, List<String>>?>(null) }
         var errorMessage by remember { mutableStateOf("") }
         val coroutineScope = rememberCoroutineScope()
+        val cityName = remember { mutableStateOf("") }
 
         location?.let {
-            coroutineScope.launch {
+            coroutineScope.launch(Dispatchers.IO) {
                 try {
-                    weatherData.value = fetchWeather(it.latitude, it.longitude)
+                    val city = fetchCityName(it.latitude, it.longitude)
+                    val weather = fetchWeather(it.latitude, it.longitude)
+                    withContext(Dispatchers.Main) {
+                        cityName.value = city
+                        weatherData.value = weather
+                    }
                 } catch (e: Exception) {
-                    errorMessage = "Failed to fetch weather data"
-                    Log.d("WeatherApp", e.toString())
+                    withContext(Dispatchers.Main) {
+                        errorMessage = "Failed to fetch data"
+                    }
                 }
             }
         }
@@ -87,7 +98,7 @@ class MainActivity : ComponentActivity() {
             modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Current Location: ${location?.latitude}, ${location?.longitude}")
+            Text("Current Location: ${cityName.value}")
             if (errorMessage.isNotEmpty()) {
                 Text(errorMessage, color = MaterialTheme.colorScheme.error)
             }
@@ -133,8 +144,7 @@ class MainActivity : ComponentActivity() {
             val formattedDate = currentDate.format(formatter)
             val (year, month, day) = formattedDate.split("-").map { it.toInt() }
             val formattedMonth = if (month < 10) "0$month" else "$month"
-            val url =
-                URL("https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/$lat,$lon/$year-$formattedMonth-$day/$year-$formattedMonth-$day?unitGroup=metric&include=days&key=VNJRVLJTXVJDMZ8FZKRVN7N4T&contentType=json")
+            val url = URL("https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/$lat,$lon/$year-$formattedMonth-$day/$year-$formattedMonth-$day?unitGroup=metric&include=days&key=VNJRVLJTXVJDMZ8FZKRVN7N4T&contentType=json")
             val connection = url.openConnection() as HttpURLConnection
             connection.requestMethod = "GET"
             val response = connection.inputStream.bufferedReader().use { it.readText() }
@@ -154,4 +164,25 @@ class MainActivity : ComponentActivity() {
 
             Pair(listOf(maxTemp, minTemp), listOf(humidity, precip, pressure, uvindex, visibility))
         }
+    suspend fun fetchCityName(lat: Double, lon: Double): String {
+        try {
+            val apiKey = "d8f3cefa7246fb08335d07d71c3ea07a"
+            val url = URL("http://api.openweathermap.org/geo/1.0/reverse?lat=$lat&lon=$lon&limit=1&appid=$apiKey")
+            val connection = withContext(Dispatchers.IO) {
+                url.openConnection()
+            } as HttpURLConnection
+            connection.requestMethod = "GET"
+            val response = connection.inputStream.bufferedReader().use { it.readText() }
+            Log.d("loggerCity", response)
+            val jsonResponse = JSONArray(response)
+            val city = if (jsonResponse.length() > 0) jsonResponse.getJSONObject(0).getString("name") else "Unknown Location"
+            connection.disconnect()
+            return city
+
+        } catch (e: Exception){
+            Log.d("exceptional", e.toString())
+            return "bruh"
+        }
+    }
+
 }
