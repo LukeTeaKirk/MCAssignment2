@@ -1,12 +1,13 @@
 package com.example.mcassignment2
 
+import android.content.Intent
+import android.location.Location
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -46,14 +47,23 @@ class ComparisonAct : ComponentActivity() {
         LaunchedEffect(Unit) {
             coroutineScope.launch {
                 weatherDataCurrent.value = fetchWeather(lat, lon)
-                weatherDataHistorical.value = fetchWeather(lat, lon)  // This will be replaced with historical fetch logic later
+                weatherDataHistorical.value = fetchHistoricalWeather(lat, lon)  // This will be replaced with historical fetch logic later
             }
         }
 
         Column(modifier = Modifier.padding(16.dp)) {
             Text("Weather Comparison at Location: Latitude $lat, Longitude $lon")
             DisplayWeatherTable(weatherDataCurrent.value, weatherDataHistorical.value)
+            Button(onClick = { navigateToMain() }) {
+                Text("Compare Weather")
+            }
+
         }
+
+    }
+    private fun navigateToMain() {
+        val intent = Intent(this, MainActivity::class.java).apply {}
+        startActivity(intent)
     }
 
     @Composable
@@ -94,4 +104,38 @@ class ComparisonAct : ComponentActivity() {
         connection.disconnect()
         weatherAttributes
     }
+    suspend fun fetchHistoricalWeather(lat: Double, lon: Double): List<String> = withContext(Dispatchers.IO) {
+        val currentDate = LocalDate.now()
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+        val (_, month, day) = currentDate.format(formatter).split("-").map { it.toInt() }
+        val formattedMonth = month.toString().padStart(2, '0')
+        val formattedDay = day.toString().padStart(2, '0')
+
+        val weatherAttributesAccumulator = MutableList(7) { 0.0 }
+        val yearsToFetch = 2
+
+        for (yearOffset in 0 until yearsToFetch) {
+            val year = currentDate.year - yearOffset
+            val url = URL("https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/$lat,$lon/$year-$formattedMonth-$formattedDay/$year-$formattedMonth-$formattedDay?unitGroup=metric&include=days&key=VNJRVLJTXVJDMZ8FZKRVN7N4T&contentType=json")
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            val response = connection.inputStream.bufferedReader().use { it.readText() }
+            val jsonResponse = JSONObject(response)
+            val dayInfo = jsonResponse.getJSONArray("days").getJSONObject(0)
+
+            weatherAttributesAccumulator[0] += dayInfo.getDouble("feelslikemax")
+            weatherAttributesAccumulator[1] += dayInfo.getDouble("feelslikemin")
+            weatherAttributesAccumulator[2] += dayInfo.getDouble("humidity")
+            weatherAttributesAccumulator[3] += dayInfo.getDouble("precip")
+            weatherAttributesAccumulator[4] += dayInfo.getDouble("pressure")
+            weatherAttributesAccumulator[5] += dayInfo.getDouble("uvindex")
+            weatherAttributesAccumulator[6] += dayInfo.getDouble("visibility")
+
+            connection.disconnect()
+        }
+
+        val averageWeatherAttributes = weatherAttributesAccumulator.map { (it / yearsToFetch).toString() }
+        averageWeatherAttributes
+    }
+
 }
