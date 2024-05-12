@@ -161,7 +161,7 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
-                Button(onClick = { navigateToComparison(location) }) {
+                Button(onClick = { navigateToComparison(location, cityName.value) }) {
                     Text("Compare Weather")
                 }
 
@@ -179,11 +179,12 @@ class MainActivity : ComponentActivity() {
             else -> R.drawable.default_background
         }
     }
-    private fun navigateToComparison(location: Location?) {
+    private fun navigateToComparison(location: Location?, cityname: String) {
         location?.let {
             val intent = Intent(this, ComparisonAct::class.java).apply {
                 putExtra("latitude", it.latitude)
                 putExtra("longitude", it.longitude)
+                putExtra("locationname", cityname)
             }
             startActivity(intent)
         }
@@ -215,7 +216,6 @@ class MainActivity : ComponentActivity() {
             val jsonResponse = JSONObject(response)
             val daysArray = jsonResponse.getJSONArray("days")
             val dayInfo = daysArray.getJSONObject(0)
-
             val maxTemp = dayInfo.getDouble("feelslikemax").toString()
             val minTemp = dayInfo.getDouble("feelslikemin").toString()
             val humidity = dayInfo.getDouble("humidity").toString()
@@ -223,9 +223,7 @@ class MainActivity : ComponentActivity() {
             val pressure = dayInfo.getDouble("pressure").toString()
             val uvindex = dayInfo.getDouble("uvindex").toString()
             val visibility = dayInfo.getDouble("visibility").toString()
-
             connection.disconnect()
-
             Pair(listOf(maxTemp, minTemp), listOf(humidity, precip, pressure, uvindex, visibility))
         }
     private suspend fun fetchCityName(lat: Double, lon: Double): String {
@@ -242,7 +240,6 @@ class MainActivity : ComponentActivity() {
             val city = if (jsonResponse.length() > 0) jsonResponse.getJSONObject(0).getString("name") else "Unknown Location"
             connection.disconnect()
             return city
-
         } catch (e: Exception){
             Log.d("exceptional", e.toString())
             return "bruh"

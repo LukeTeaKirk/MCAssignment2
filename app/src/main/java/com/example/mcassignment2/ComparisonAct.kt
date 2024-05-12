@@ -36,14 +36,16 @@ class ComparisonAct : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val latitude = intent.getDoubleExtra("latitude", 0.0)
         val longitude = intent.getDoubleExtra("longitude", 0.0)
-
+        val locationname = intent.getStringExtra("locationname")
         setContent {
-            WeatherComparisonScreen(latitude, longitude)
+            if (locationname != null) {
+                WeatherComparisonScreen(latitude, longitude, locationname)
+            }
         }
     }
 
     @Composable
-    fun WeatherComparisonScreen(lat: Double, lon: Double) {
+    fun WeatherComparisonScreen(lat: Double, lon: Double, locationname:String) {
         val coroutineScope = rememberCoroutineScope()
         val weatherDataCurrent = remember { mutableStateOf<List<String>?>(null) }
         val weatherDataHistorical = remember { mutableStateOf<List<String>?>(null) }
@@ -67,7 +69,7 @@ class ComparisonAct : ComponentActivity() {
             )
 
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Weather Comparison at Location: Latitude $lat, Longitude $lon")
+                Text("Weather Comparison at Location: $locationname")
                 DisplayWeatherTable(weatherDataCurrent.value, weatherDataHistorical.value)
                 Button(onClick = { navigateToMain() }) {
                     Text("Compare Weather")
