@@ -1,11 +1,14 @@
 package com.example.mcassignment2
 
 import android.content.Intent
-import android.location.Location
+
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
@@ -15,9 +18,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
+
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -43,28 +47,40 @@ class ComparisonAct : ComponentActivity() {
         val coroutineScope = rememberCoroutineScope()
         val weatherDataCurrent = remember { mutableStateOf<List<String>?>(null) }
         val weatherDataHistorical = remember { mutableStateOf<List<String>?>(null) }
+        val backgroundRes = remember { mutableStateOf(R.drawable.default_background) } // Default background resource
 
         LaunchedEffect(Unit) {
             coroutineScope.launch {
                 weatherDataCurrent.value = fetchWeather(lat, lon)
-                weatherDataHistorical.value = fetchHistoricalWeather(lat, lon)  // This will be replaced with historical fetch logic later
+                weatherDataHistorical.value = fetchHistoricalWeather(lat, lon)
             }
         }
 
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("Weather Comparison at Location: Latitude $lat, Longitude $lon")
-            DisplayWeatherTable(weatherDataCurrent.value, weatherDataHistorical.value)
-            Button(onClick = { navigateToMain() }) {
-                Text("Compare Weather")
+        Box(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Image(
+                painter = painterResource(id = backgroundRes.value),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.FillBounds
+            )
+
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("Weather Comparison at Location: Latitude $lat, Longitude $lon")
+                DisplayWeatherTable(weatherDataCurrent.value, weatherDataHistorical.value)
+                Button(onClick = { navigateToMain() }) {
+                    Text("Compare Weather")
+                }
             }
-
         }
-
     }
+
     private fun navigateToMain() {
         val intent = Intent(this, MainActivity::class.java).apply {}
         startActivity(intent)
     }
+
 
     @Composable
     fun DisplayWeatherTable(currentWeather: List<String>?, historicalWeather: List<String>?) {
