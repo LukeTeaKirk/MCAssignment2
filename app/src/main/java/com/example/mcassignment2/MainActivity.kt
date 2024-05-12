@@ -55,7 +55,6 @@ class MainActivity : ComponentActivity() {
             if (isGranted) {
                 getCurrentLocation()
             } else {
-                // Handle permission denial, maybe update UI to show an error message
             }
         }
     private val currentLocation: MutableState<Location?> = mutableStateOf(null)
@@ -84,8 +83,7 @@ class MainActivity : ComponentActivity() {
         val coroutineScope = rememberCoroutineScope()
         val cityName = remember { mutableStateOf("") }
         val weatherCondition = remember { mutableStateOf("") }
-        val backgroundRes = remember { mutableIntStateOf(R.drawable.default_background) } // Default background resource
-
+        val backgroundRes = remember { mutableIntStateOf(R.drawable.default_background) }
         location?.let {
             coroutineScope.launch(Dispatchers.IO) {
                 try {
@@ -190,8 +188,6 @@ class MainActivity : ComponentActivity() {
         }
     }
     private fun determineWeatherCondition(weatherData: Pair<List<String>, List<String>>): String {
-        // You can use temperature, humidity, precipitation, etc. to determine the weather condition
-        // For simplicity, let's assume if precipitation > 0, it's rainy, otherwise if temperature > 25, it's sunny, else cloudy
         val precipitation = weatherData.second[1].toDoubleOrNull() ?: 0.0
         val temperature = weatherData.first[0].toDoubleOrNull() ?: 0.0
 

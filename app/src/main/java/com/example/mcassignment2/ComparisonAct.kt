@@ -1,7 +1,7 @@
 package com.example.mcassignment2
 
 import android.content.Intent
-
+import kotlin.math.abs
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -9,8 +9,11 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -18,6 +21,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -67,12 +71,16 @@ class ComparisonAct : ComponentActivity() {
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.FillBounds
             )
-
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text("Weather Comparison at Location: $locationname")
-                DisplayWeatherTable(weatherDataCurrent.value, weatherDataHistorical.value)
-                Button(onClick = { navigateToMain() }) {
-                    Text("Compare Weather")
+            Surface(
+                modifier = Modifier.fillMaxWidth().padding(8.dp),
+                shape = RoundedCornerShape(8.dp),color = Color.LightGray
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Weather Comparison at Location: $locationname")
+                    DisplayWeatherTable(weatherDataCurrent.value, weatherDataHistorical.value)
+                    Button(onClick = { navigateToMain() }) {
+                        Text("Return")
+                    }
                 }
             }
         }
@@ -87,9 +95,12 @@ class ComparisonAct : ComponentActivity() {
     @Composable
     fun DisplayWeatherTable(currentWeather: List<String>?, historicalWeather: List<String>?) {
         if (currentWeather != null && historicalWeather != null) {
-            val attributes = listOf("Maximum Temperature", "Minimum Temperature", "Humidity", "Precipitation", "Pressure", "UV Index", "Visibility")
+            val attributes = listOf("Maximum Temperature °C", "Minimum Temperature °C", "Humidity %", "Precipitation mm", "Pressure Pa", "UV Index", "Visibility M")
             attributes.forEachIndexed { index, attribute ->
-                Text("$attribute: Current - ${currentWeather[index]}°C, Historical - ${historicalWeather[index]}°C")
+                Text("$attribute: Current - ${currentWeather[index]}, Historical - ${historicalWeather[index]}")
+                val diff = currentWeather[index].toFloat()-historicalWeather[index].toFloat()
+                val pchange = abs(diff)/historicalWeather[index].toFloat()
+                Text("Percentage Change: $pchange")
             }
         }
     }
